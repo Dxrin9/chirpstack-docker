@@ -175,6 +175,158 @@ function encodeDownlink(input) {
 
 ```
 
+## Arduino
+Code for Wireless Stick Senzor
+```
+#include "LoRaWan_APP.h"
+#include <Wire.h>
+#include <DHT.h>
+
+/* OTAA para - DEVICE-UL DHT11 */
+uint8_t devEui[] = { 0x00, 0x00, 0xCC, 0xBD, 0xE5, 0xE2, 0x27, 0x48 };
+uint8_t appEui[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+uint8_t appKey[] = { 0x9D, 0xFA, 0x5E, 0xF7, 0xF5, 0xD9, 0x33, 0x23, 0xFA, 0x2F, 0x69, 0x94, 0xDE, 0x1E, 0x2F, 0xA9 };
+
+/* CONFIGURARE DHT11 */
+#define DHTPIN 20          // GPIO 13 pentru DHT11
+#define DHTTYPE DHT11      // Tip senzor
+DHT dht(DHTPIN, DHTTYPE);
+
+// Variabile pentru date
+float temperature, humidity;
+static uint8_t counter = 0;
+bool dhtError = false;
+
+/* ABP para (ignoră - folosim OTAA) */
+uint8_t nwkSKey[] = { 0x15, 0xb1, 0xd0, 0xef, 0xa4, 0x63, 0xdf, 0xbe, 0x3d, 0x11, 0x18, 0x1e, 0x1e, 0xc7, 0xda,0x85 };
+uint8_t appSKey[] = { 0xd7, 0x2c, 0x78, 0x75, 0x8c, 0xdc, 0xca, 0xbf, 0x55, 0xee, 0x4a, 0x77, 0x8d, 0x16, 0xef,0x67 };
+uint32_t devAddr =  ( uint32_t )0x007e6ae1;
+
+/* LoraWan settings */
+uint16_t userChannelsMask[6] = { 0x00FF,0x0000,0x0000,0x0000,0x0000,0x0000 };
+LoRaMacRegion_t loraWanRegion = LORAMAC_REGION_EU868;
+DeviceClass_t  loraWanClass = CLASS_A;
+uint32_t appTxDutyCycle = 60000; // Transmie la fiecare 60 secunde
+bool overTheAirActivation = true;
+bool loraWanAdr = true;
+bool isTxConfirmed = true;
+uint8_t appPort = 2;
+uint8_t confirmedNbTrials = 4;
+
+/* Prepares the payload of the frame */
+static void prepareTxFrame( uint8_t port )
+{
+  // Citește datele de la DHT11
+  float tempRead = dht.readTemperature();
+  float humRead = dht.readHumidity();
+  
+  // Verifică dacă citirea a funcționat
+  if (isnan(tempRead)  isnan(humRead)) {
+    Serial.println("⚠️ Eroare la citirea DHT11! Folosesc date default.");
+    dhtError = true;
+    
+    // Date default în caz de eroare
+    temperature = 25.0;
+    humidity = 50.0;
+  } else {
+    dhtError = false;
+    temperature = tempRead;
+    humidity = humRead;
+    
+    // Filtrăm valori imposibile
+    if (temperature < -10  temperature > 60) temperature = 25.0;
+    if (humidity < 0 || humidity > 100) humidity = 50.0;
+  }
+  
+  // Pregătește datele pentru transmitere
+  appDataSize = 4;
+  appData[0] = (uint8_t)temperature;     // Temperatură (°C)
+  appData[1] = (uint8_t)humidity;        // Umiditate (%)
+  appData[2] = 100;                      // Baterie 100% (simulat)
+  appData[3] = counter++;                // Contor
+  
+  // Afișează datele în Serial Monitor
+  Serial.printf("🌡 DHT11 - Temp: %.1f°C, 💧 Hum: %.1f%%, 🔋 Bat: 100%%, 🔢 Cnt: %d", 
+                temperature, humidity, appData[3]);
+  
+  if (dhtError) {
+    Serial.println(" | ⚠️ DATE DEFAULT");
+  } else {
+    Serial.println(" | ✅ DATE REALE");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("🚀 Initializare Heltec Stick V3 cu DHT11...");
+  
+  // Initializează placa
+  Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
+  
+  // Initializează senzorul DHT11
+  dht.begin();
+  Serial.println("✅ DHT11 initializat pe GPIO 13");
+  Serial.println("⏳ Aștept 2 secunde pentru stabilizare senzor...");
+  delay(2000);
+  
+  // Afișează configurația
+  Serial.print("📡 DevEUI: ");
+  for(int i=0; i<8; i++) {
+    Serial.printf("%02X", devEui[i]);
+  }
+  Serial.println("\n🔑 Mod OTAA activat");
+}
+void loop()
+{
+  switch( deviceState )
+  {
+    case DEVICE_STATE_INIT:
+    {
+      #if(LORAWAN_DEVEUI_AUTO)
+        LoRaWAN.generateDeveuiByChipID();
+      #endif
+      
+      Serial.println("📡 Initializare LoRaWAN...");
+      LoRaWAN.init(loraWanClass, loraWanRegion);
+      LoRaWAN.setDefaultDR(3);
+      break;
+    }
+    case DEVICE_STATE_JOIN:
+    {
+      Serial.println("🔗 Încerc conectare la rețea...");
+      LoRaWAN.join();
+      break;
+    }
+    case DEVICE_STATE_SEND:
+    {
+      Serial.println("📤 Trimit date...");
+      prepareTxFrame( appPort );
+      LoRaWAN.send();
+      deviceState = DEVICE_STATE_CYCLE;
+      break;
+    }
+    case DEVICE_STATE_CYCLE:
+    {
+      // Programează următoarea transmisie
+      txDutyCycleTime = appTxDutyCycle + randr( -APP_TX_DUTYCYCLE_RND, APP_TX_DUTYCYCLE_RND );
+      LoRaWAN.cycle(txDutyCycleTime);
+      deviceState = DEVICE_STATE_SLEEP;
+      break;
+    }
+    case DEVICE_STATE_SLEEP:
+    {
+      LoRaWAN.sleep(loraWanClass);
+      break;
+    }
+    default:
+    {
+      deviceState = DEVICE_STATE_INIT;
+      break;
+    }
+  }
+}
+```
+
 ## Find Your Computer IP
 Wi-Fi IP: Use ipconfig and look for IPv4 Address
 
