@@ -115,6 +115,66 @@ Authentication: No Authenticatio
 AppKey: 9dfa5ef7f5d93323fa2f6994de1e2fa9
 EUI: 0000ccbde5e22748
 
+## Device Profiles
+JavaScript Functions
+```
+/**
+ * Decode uplink function
+ * 
+ * @param {object} input
+ * @param {number[]} input.bytes Byte array containing the uplink payload, e.g. [255, 230, 255, 0]
+ * @param {number} input.fPort Uplink fPort.
+ * @param {Record<string, string>} input.variables Object containing the configured device variables.
+ * 
+ * @returns {{data: object, errors: string[], warnings: string[]}}
+ * An object containing:
+ * - data: Object representing the decoded payload.
+ * - errors: An array of errors (optional).
+ * - warnings: An array of warnings (optional).
+ */
+function decodeUplink(input) {
+  var bytes = input.bytes;
+  
+  return {
+    data: {
+      temperature: bytes[0],     // °C
+      humidity: bytes[1],        // %
+      battery: bytes[2],         // %
+      counter: bytes[3]          // contor
+    }
+  };
+}
+
+function encodeDownlink(input) {
+  return {
+    bytes: [],
+    fPort: 2
+  };
+}
+
+/**
+ * Encode downlink function.
+ * 
+ * @param {object} input
+ * @param {object} input.data Object representing the payload that must be encoded.
+ * @param {Record<string, string>} input.variables Object containing the configured device variables.
+ * 
+ * @returns {{bytes: number[], fPort: number, errors: string[], warnings: string[]}}
+ * An object containing:
+ * - bytes: Byte array containing the downlink payload.
+ * - fPort: The downlink LoRaWAN fPort.
+ * - errors: An array of errors (optional).
+ * - warnings: An array of warnings (optional).
+ */
+function encodeDownlink(input) {
+  return {
+    fPort: 10,
+    bytes: [225, 230, 255, 0],
+  };
+}
+
+```
+
 ## Find Your Computer IP
 Wi-Fi IP: Use ipconfig and look for IPv4 Address
 
