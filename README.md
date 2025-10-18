@@ -111,6 +111,10 @@ URI: ws://YOUR_COMPUTER_IP:3001
 
 Authentication: No Authenticatio
 
+## Senzor 
+AppKey: 9dfa5ef7f5d93323fa2f6994de1e2fa9
+EUI: 0000ccbde5e22748
+
 ## Find Your Computer IP
 Wi-Fi IP: Use ipconfig and look for IPv4 Address
 
