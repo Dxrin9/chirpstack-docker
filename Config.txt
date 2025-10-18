@@ -1,0 +1,24 @@
+@"
+# SenseCap M2 Setup Guide
+
+## Successful Configuration
+- **Gateway**: SenseCap M2
+- **Gateway EUI**: 2CF7F11060300030  
+- **Mode**: Basic Station
+- **Working URI**: ws://192.168.168.236:3001
+- **Authentication**: No Authentication
+
+## Server IPs that worked:
+- `192.168.168.236` (Wi-Fi IP - recommended)
+- `192.168.56.1` (Ethernet IP)
+- `172.27.16.1` (WSL IP)
+
+## Network Configuration
+- **Basic Station Port**: 3001 (WebSocket)
+- **Packet Forwarder Port**: 1700 (UDP)
+- **ChirpStack Web UI**: http://localhost:8080
+
+## Firewall Rules Needed:
+```powershell
+netsh advfirewall firewall add rule name='LoRaWAN Basic Station' dir=in action=allow protocol=TCP localport=3001
+netsh advfirewall firewall add rule name='LoRaWAN Packet Forwarder' dir=in action=allow protocol=UDP localport=1700
