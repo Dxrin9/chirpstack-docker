@@ -90,15 +90,30 @@ $ docker-compose up
 After all the components have been initialized and started, you should be able
 to open http://localhost:8080/ in your browser.
 
-@"
-# ChirpStack Docker Setup with SenseCap M2 Support
-
 ## Quick Start
 ```bash
 git clone https://github.com/Dxrin9/chirpstack-docker.git
 cd chirpstack-docker
 docker-compose up -d
 ```
+
+## ChirpStack
+
+Web UI: http://localhost:8080
+
+Username: admin
+
+Password: admin
+
+## Gateway Configuration
+SenseCap M2 (Basic Station)
+URI: ws://YOUR_COMPUTER_IP:3001
+
+Authentication: No Authenticatio
+
+## Find Your Computer IP
+Wi-Fi IP: Use ipconfig and look for IPv4 Address
+
 ##
 
 The example includes the [ChirpStack REST API](https://github.com/chirpstack/chirpstack-rest-api).
